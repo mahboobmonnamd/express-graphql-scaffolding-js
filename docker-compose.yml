@@ -1,0 +1,81 @@
+version: '3.2'
+
+services:
+  api:
+    container_name: api
+    build:
+      context: ./
+      dockerfile: dev.Dockerfile
+    volumes: 
+      - ./build:/app/build:delegated
+      - ./package.json:/app/package.json:delegated
+      - ./config:/app/config
+    depends_on:
+      - api-watch
+      - postgres-db
+      - redis-container
+    ports:
+     - "4000:4000"
+    networks:
+      - graphql-scaffolding-api
+  
+  api-watch:
+    container_name: api-watch
+    build: 
+      context: ./
+      dockerfile: dev.Dockerfile
+    command: 'npm run build:watch'
+    volumes: 
+      - ./src:/app/src:delegated
+      - ./build:/app/build:delegated
+      - ./babel.config.json:/app/babel.config.json
+      - ./config:/app/config
+    networks:
+      - graphql-scaffolding-api
+
+  redis-container:
+    container_name: redis-container
+    image: redis:latest
+    hostname: redis
+    command: redis-server
+    networks:
+      - graphql-scaffolding-api
+    volumes:
+      - redis-data:/data
+
+  postgres-db:
+    container_name: postgres-db
+    image: postgres:latest
+    volumes:
+      - postgres-database-data:/var/lib/postgresql/data/
+      - ./scripts/database/postgres:/docker-entrypoint-initdb.d
+    environment: 
+      POSTGRES_USER: 'fourm'
+      POSTGRES_PASSWORD: 'Passw0rd'
+      POSTGRES_DB: 'books-db'
+    networks: 
+      - graphql-scaffolding-api
+    ports: 
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pg-admin-container
+    environment: 
+      PGADMIN_DEFAULT_EMAIL: pgadmin@fourm.dev
+      PGADMIN_DEFAULT_PASSWORD: P@ssw0rd
+    ports:
+      - "5050:80"
+    networks: 
+      - graphql-scaffolding-api
+    volumes: 
+      - pgadmin-data:/var/lib/pgadmin
+
+networks:
+  graphql-scaffolding-api:
+    external: true
+
+volumes: 
+  redis-data:
+  postgres-database-data:
+  pgadmin-data:
